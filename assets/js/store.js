@@ -237,6 +237,16 @@ class SativaStore {
     return orders.find(o => o.id.toLowerCase() === id.trim().toLowerCase());
   }
 
+  searchOrders(query) {
+    const orders = this.getOrders();
+    if (!query) return [];
+    const q = query.toLowerCase().trim();
+    return orders.filter(o =>
+      o.id.toLowerCase().includes(q) ||
+      o.customerName.toLowerCase().includes(q)
+    );
+  }
+
   saveOrder(order) {
     const orders = this.getOrders();
     orders.unshift(order);

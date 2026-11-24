@@ -2,6 +2,23 @@ function formatRupiah(number) {
   return 'Rp' + Number(number).toLocaleString('id-ID');
 }
 
+function getTodayISO() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatIndonesianDate(isoDate, shortMonth = true) {
+  if (!isoDate || !isoDate.includes('-')) return isoDate || '';
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const fullMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const monthName = (shortMonth ? shortMonths : fullMonths)[m - 1] || '';
+  return `${d} ${monthName} ${y}`;
+}
+
 class SativaApp {
   constructor() {
     this.currentTab = 'pesanan';
@@ -19,6 +36,8 @@ class SativaApp {
     this.bindExpenses();
     this.bindModals();
     this.bindComboboxOutsideClick();
+    this.bindDateTimePickers();
+    this.bindTimePicker();
 
     const hash = window.location.hash.replace('#', '') || 'pesanan';
     this.switchTab(hash);
@@ -50,6 +69,10 @@ class SativaApp {
   }
 
   switchTab(tabName, updateHash = true) {
+    if (this.currentTab === 'scan-qr' && tabName !== 'scan-qr' && this.stopCamera) {
+      this.stopCamera();
+    }
+
     this.currentTab = tabName;
     if (updateHash) {
       window.location.hash = tabName;
@@ -121,6 +144,184 @@ class SativaApp {
         }
       });
     });
+  }
+
+  bindDateTimePickers() {
+    ['newOrderEstimateDate', 'expenseDate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('click', () => {
+          if (typeof el.showPicker === 'function') {
+            try { el.showPicker(); } catch (_) {}
+          }
+        });
+      }
+    });
+  }
+
+  bindTimePicker() {
+    const timeInput = document.getElementById('newOrderEstimateTime');
+    const hourBox = document.getElementById('tpHourBox');
+    const minuteBox = document.getElementById('tpMinuteBox');
+    const amBtn = document.getElementById('tpAmBtn');
+    const pmBtn = document.getElementById('tpPmBtn');
+    const clockFace = document.getElementById('tpClockFace');
+    const cancelBtn = document.getElementById('tpCancelBtn');
+    const okBtn = document.getElementById('tpOkBtn');
+
+    if (!timeInput || !clockFace) return;
+
+    this.tpState = { hour: 5, minute: 0, period: 'PM', mode: 'hour' };
+
+    const openPicker = () => {
+      const val = (timeInput.value || '17:00').trim();
+      const parts = val.split(':');
+      let h24 = parseInt(parts[0], 10);
+      let m = parseInt(parts[1], 10);
+      if (isNaN(h24)) h24 = 17;
+      if (isNaN(m)) m = 0;
+
+      const period = h24 >= 12 ? 'PM' : 'AM';
+      let h12 = h24 % 12;
+      if (h12 === 0) h12 = 12;
+
+      this.tpState = { hour: h12, minute: m, period, mode: 'hour' };
+      this.renderTimePicker();
+      this.openModal('modalTimePicker');
+    };
+
+    timeInput.addEventListener('click', openPicker);
+
+    if (hourBox) {
+      hourBox.addEventListener('click', () => {
+        this.tpState.mode = 'hour';
+        this.renderTimePicker();
+      });
+    }
+
+    if (minuteBox) {
+      minuteBox.addEventListener('click', () => {
+        this.tpState.mode = 'minute';
+        this.renderTimePicker();
+      });
+    }
+
+    if (amBtn) {
+      amBtn.addEventListener('click', () => {
+        this.tpState.period = 'AM';
+        this.renderTimePicker();
+      });
+    }
+
+    if (pmBtn) {
+      pmBtn.addEventListener('click', () => {
+        this.tpState.period = 'PM';
+        this.renderTimePicker();
+      });
+    }
+
+    let isDragging = false;
+
+    const handleDialPoint = (clientX, clientY) => {
+      const rect = clockFace.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+      if (angle < 0) angle += 360;
+
+      if (this.tpState.mode === 'hour') {
+        let h = Math.round(angle / 30);
+        if (h === 0) h = 12;
+        this.tpState.hour = h;
+      } else {
+        let m = Math.round(angle / 6) % 60;
+        this.tpState.minute = m;
+      }
+      this.renderTimePicker();
+    };
+
+    clockFace.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      clockFace.setPointerCapture(e.pointerId);
+      handleDialPoint(e.clientX, e.clientY);
+    });
+
+    clockFace.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      handleDialPoint(e.clientX, e.clientY);
+    });
+
+    clockFace.addEventListener('pointerup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (this.tpState.mode === 'hour') {
+        this.tpState.mode = 'minute';
+        this.renderTimePicker();
+      }
+    });
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        this.closeModal('modalTimePicker');
+      });
+    }
+
+    if (okBtn) {
+      okBtn.addEventListener('click', () => {
+        let h24 = this.tpState.hour % 12;
+        if (this.tpState.period === 'PM') h24 += 12;
+        const hh = String(h24).padStart(2, '0');
+        const mm = String(this.tpState.minute).padStart(2, '0');
+        timeInput.value = `${hh}:${mm}`;
+        this.closeModal('modalTimePicker');
+      });
+    }
+  }
+
+  renderTimePicker() {
+    const hourBox = document.getElementById('tpHourBox');
+    const minuteBox = document.getElementById('tpMinuteBox');
+    const amBtn = document.getElementById('tpAmBtn');
+    const pmBtn = document.getElementById('tpPmBtn');
+    const clockHand = document.getElementById('tpClockHand');
+    const clockNumbers = document.getElementById('tpClockNumbers');
+
+    if (!this.tpState || !clockNumbers) return;
+
+    const { hour, minute, period, mode } = this.tpState;
+
+    if (hourBox) {
+      hourBox.textContent = String(hour).padStart(2, '0');
+      hourBox.classList.toggle('active', mode === 'hour');
+    }
+    if (minuteBox) {
+      minuteBox.textContent = String(minute).padStart(2, '0');
+      minuteBox.classList.toggle('active', mode === 'minute');
+    }
+    if (amBtn) amBtn.classList.toggle('active', period === 'AM');
+    if (pmBtn) pmBtn.classList.toggle('active', period === 'PM');
+
+    const deg = mode === 'hour' ? (hour % 12) * 30 : minute * 6;
+    if (clockHand) {
+      clockHand.style.transform = `translateX(-50%) rotate(${deg}deg)`;
+    }
+
+    const radius = 88;
+    const center = 118;
+    const items = mode === 'hour'
+      ? [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+      : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+    clockNumbers.innerHTML = items.map((val, idx) => {
+      const angleRad = ((idx * 30) - 90) * (Math.PI / 180);
+      const x = center + radius * Math.cos(angleRad);
+      const y = center + radius * Math.sin(angleRad);
+      const label = mode === 'hour' ? String(val) : String(val).padStart(2, '0');
+      const isActive = mode === 'hour' ? val === hour : val === minute;
+      return `<div class="tp-clock-num ${isActive ? 'active' : ''}" style="left: ${x}px; top: ${y}px;">${label}</div>`;
+    }).join('');
   }
 
   bindComboboxOutsideClick() {
@@ -275,13 +476,7 @@ class SativaApp {
   handleOrderDetailClick(orderId) {
     const order = window.sativaStore.getOrderById(orderId);
     if (!order) return;
-
-    if (order.customerName.toLowerCase().includes('rani') && order.id === 'STL-261114-021') {
-      this.activeOrderInScan = order;
-      this.switchTab('scan-qr');
-    } else {
-      this.showOrderDetailModal(order);
-    }
+    this.showOrderDetailModal(order);
   }
 
   showOrderDetailModal(order) {
@@ -376,24 +571,34 @@ class SativaApp {
 
   initNewOrderForm() {
     const custInput = document.getElementById('newOrderCustomerInput');
-    if (custInput && !custInput.value) {
-      custInput.value = 'Rani';
+    if (custInput) {
+      custInput.value = '';
     }
-    this.updateNewOrderCustomerPreview(custInput?.value || 'Rani');
+    const estDateInput = document.getElementById('newOrderEstimateDate');
+    const estTimeInput = document.getElementById('newOrderEstimateTime');
+    if (estDateInput) estDateInput.value = getTodayISO();
+    if (estTimeInput && !estTimeInput.value) estTimeInput.value = '17:00';
+
+    this.updateNewOrderCustomerPreview('');
     this.calculateNewOrderSummary();
   }
 
-  updateNewOrderCustomerPreview(customerName = 'Rani') {
+  updateNewOrderCustomerPreview(customerName = '') {
     const previewEl = document.getElementById('newOrderCustomerPreview');
     if (!previewEl) return;
 
-    const customer = window.sativaStore.getCustomerByName(customerName) || {
-      name: customerName,
-      phone: '0812-0000-0021',
-      address: 'Jl. Sigura-Gura, Malang'
-    };
+    const trimmed = (customerName || '').trim();
+    if (!trimmed) {
+      previewEl.innerHTML = 'Belum ada pelanggan dipilih. Ketik nama untuk mencari atau daftarkan pelanggan baru.';
+      return;
+    }
 
-    previewEl.innerHTML = `${customer.name} · ${customer.phone} (contoh)<br>${customer.address}`;
+    const customer = window.sativaStore.getCustomerByName(trimmed);
+    if (customer) {
+      previewEl.innerHTML = `${customer.name} · ${customer.phone}<br>${customer.address}`;
+    } else {
+      previewEl.innerHTML = `${trimmed} · Pelanggan baru / tidak terdaftar`;
+    }
   }
 
   calculateNewOrderSummary() {
@@ -424,7 +629,14 @@ class SativaApp {
 
   submitNewOrder() {
     const custInput = document.getElementById('newOrderCustomerInput');
-    const customer = window.sativaStore.getCustomerByName(custInput?.value || 'Rani');
+    const rawCustName = (custInput?.value || '').trim();
+    if (!rawCustName) {
+      alert('Pilih atau masukkan nama pelanggan terlebih dahulu!');
+      custInput?.focus();
+      return;
+    }
+
+    const customer = window.sativaStore.getCustomerByName(rawCustName);
     const weight = parseFloat(document.getElementById('newOrderWeight')?.value) || 3;
     const rate = 7000;
     const total = weight * rate;
@@ -433,12 +645,20 @@ class SativaApp {
     const notes = document.getElementById('newOrderNotes')?.value || 'Pisahkan pakaian putih';
     const paymentMethod = document.getElementById('newOrderPaymentMethod')?.value || 'Tunai';
 
+    const estDateVal = document.getElementById('newOrderEstimateDate')?.value || getTodayISO();
+    const estTimeVal = document.getElementById('newOrderEstimateTime')?.value || '17:00';
+    const estDateFormatted = `${formatIndonesianDate(estDateVal, true)} · ${estTimeVal.replace(':', '.')} WIB`;
+
+    const now = new Date();
+    const nowTime = `${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}`;
+    const todayShort = formatIndonesianDate(getTodayISO(), true);
+
     const randNum = String(Math.floor(Math.random() * 900) + 100);
     const newId = `STL-261116-${randNum}`;
 
     const newOrder = {
       id: newId,
-      customerName: customer ? customer.name : (custInput?.value || 'Pelanggan Baru'),
+      customerName: customer ? customer.name : rawCustName,
       customerPhone: customer ? customer.phone : '0812-0000-0000',
       customerAddress: customer ? customer.address : 'Malang',
       service: 'Cuci + setrika',
@@ -450,12 +670,12 @@ class SativaApp {
       status: 'Diterima',
       paymentStatus: 'LUNAS',
       paymentMethod: paymentMethod,
-      orderDate: '14 Nov 2026 · 09.00',
-      estimateDate: '16 Nov 2026 · 17.00 WIB',
+      orderDate: `${todayShort} · ${nowTime}`,
+      estimateDate: estDateFormatted,
       notes: notes,
       shelf: '',
       history: [
-        { time: '14 Nov · 09.00', status: 'Diterima' }
+        { time: `${now.getDate()} ${formatIndonesianDate(getTodayISO(), true).split(' ')[1]} · ${nowTime}`, status: 'Diterima' }
       ]
     };
 
@@ -552,26 +772,70 @@ class SativaApp {
     const btnConfirmStatus = document.getElementById('btnConfirmStatus');
     const btnRetryWA = document.getElementById('btnRetryWA');
 
+    this.cameraStream = null;
+    this.barcodeInterval = null;
+
+    const scanOrderDropdown = document.getElementById('scanOrderDropdown');
+
     if (btnActivateCamera) {
       btnActivateCamera.addEventListener('click', () => {
-        const dialogQRDesc = document.getElementById('dialogQRDesc');
-        const activeOrder = this.activeOrderInScan || window.sativaStore.getOrderById('STL-261114-021') || window.sativaStore.getOrders()[0];
-        if (dialogQRDesc && activeOrder) {
-          dialogQRDesc.textContent = `Simulasi pemindaian: ${activeOrder.id} · ${activeOrder.customerName}. Lanjutkan ke hasil pemindaian di halaman ini untuk memperbarui status.`;
-        }
-        this.openModal('modalQRDikenali');
+        this.toggleCamera();
       });
     }
 
     if (btnSearchScanCode) {
       btnSearchScanCode.addEventListener('click', () => {
-        const code = inputScanCode?.value || '';
-        const order = window.sativaStore.getOrderById(code);
-        if (order) {
-          this.activeOrderInScan = order;
-          this.renderScanQR();
+        if (scanOrderDropdown) scanOrderDropdown.classList.remove('active');
+        this.searchOrderByScanInput();
+      });
+    }
+
+    if (inputScanCode) {
+      const showScanSuggestions = () => {
+        if (!scanOrderDropdown) return;
+        const q = inputScanCode.value.toLowerCase().trim();
+        const orders = window.sativaStore.getOrders();
+        const filtered = q
+          ? orders.filter(o => o.id.toLowerCase().includes(q) || o.customerName.toLowerCase().includes(q))
+          : orders.slice(0, 6);
+
+        if (filtered.length === 0) {
+          scanOrderDropdown.innerHTML = `<div style="padding: 0.75rem 1rem; color: var(--slate-500); font-size: 0.85rem;">Pesanan tidak ditemukan</div>`;
         } else {
-          alert('Kode pesanan tidak ditemukan. Periksa kembali nota atau nomor pesanan.');
+          scanOrderDropdown.innerHTML = filtered.map(o => `
+            <div class="combobox-item" data-scan-order-id="${o.id}">
+              <div>
+                <div class="combobox-item-name">${o.id} · ${o.customerName}</div>
+                <div class="combobox-item-desc">${o.service} · ${o.weight} kg · ${o.status}</div>
+              </div>
+              <span style="font-size: 0.75rem; color: var(--sky-700);">Pilih</span>
+            </div>
+          `).join('');
+        }
+
+        scanOrderDropdown.classList.add('active');
+
+        scanOrderDropdown.querySelectorAll('.combobox-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const orderId = item.getAttribute('data-scan-order-id');
+            const chosenOrder = window.sativaStore.getOrderById(orderId);
+            if (chosenOrder) {
+              inputScanCode.value = chosenOrder.id;
+              scanOrderDropdown.classList.remove('active');
+              this.activeOrderInScan = chosenOrder;
+              this.renderScanOrderDetail();
+            }
+          });
+        });
+      };
+
+      inputScanCode.addEventListener('focus', showScanSuggestions);
+      inputScanCode.addEventListener('input', showScanSuggestions);
+      inputScanCode.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (scanOrderDropdown) scanOrderDropdown.classList.remove('active');
+          this.searchOrderByScanInput();
         }
       });
     }
@@ -579,6 +843,13 @@ class SativaApp {
     if (btnConfirmStatus) {
       btnConfirmStatus.addEventListener('click', () => {
         this.confirmStatusUpdate();
+      });
+    }
+
+    const statusTransitionSelect = document.getElementById('scanStatusTransitionSelect');
+    if (statusTransitionSelect) {
+      statusTransitionSelect.addEventListener('change', () => {
+        this.updateScanTransitionUI(statusTransitionSelect.value);
       });
     }
 
@@ -611,20 +882,283 @@ class SativaApp {
     }
   }
 
+  toggleCamera() {
+    const viewport = document.getElementById('scannerViewport');
+    const video = document.getElementById('cameraStream');
+    const btn = document.getElementById('btnActivateCamera');
+
+    if (!viewport || !video) return;
+
+    if (this.cameraStream) {
+      this.stopCamera();
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Browser tidak mendukung akses kamera. Gunakan input kode sebagai alternatif.');
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+    })
+    .then(stream => {
+      this.cameraStream = stream;
+      video.srcObject = stream;
+      viewport.classList.add('camera-active');
+      if (btn) btn.textContent = 'Matikan kamera';
+
+      if ('BarcodeDetector' in window) {
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        this.barcodeInterval = setInterval(async () => {
+          if (!this.cameraStream || video.readyState < 2) return;
+          try {
+            const barcodes = await detector.detect(video);
+            if (barcodes.length > 0 && barcodes[0].rawValue) {
+              const scannedValue = barcodes[0].rawValue.trim();
+              const order = window.sativaStore.getOrderById(scannedValue);
+              if (order) {
+                this.stopCamera();
+                const inputEl = document.getElementById('inputScanCode');
+                if (inputEl) inputEl.value = order.id;
+                this.activeOrderInScan = order;
+                this.renderScanOrderDetail();
+                const dialogQRDesc = document.getElementById('dialogQRDesc');
+                if (dialogQRDesc) {
+                  dialogQRDesc.textContent = `QR berhasil dipindai: ${order.id} · ${order.customerName}. Lanjutkan untuk memperbarui status.`;
+                }
+                this.openModal('modalQRDikenali');
+              }
+            }
+          } catch (_) {}
+        }, 500);
+      }
+    })
+    .catch(() => {
+      alert('Tidak dapat mengakses kamera. Pastikan izin kamera diberikan pada browser, atau gunakan input kode manual.');
+    });
+  }
+
+  stopCamera() {
+    if (this.barcodeInterval) {
+      clearInterval(this.barcodeInterval);
+      this.barcodeInterval = null;
+    }
+    if (this.cameraStream) {
+      this.cameraStream.getTracks().forEach(track => track.stop());
+      this.cameraStream = null;
+    }
+    const viewport = document.getElementById('scannerViewport');
+    const video = document.getElementById('cameraStream');
+    const btn = document.getElementById('btnActivateCamera');
+    if (viewport) viewport.classList.remove('camera-active');
+    if (video) video.srcObject = null;
+    if (btn) btn.textContent = 'Aktifkan kamera';
+  }
+
+  searchOrderByScanInput() {
+    const inputScanCode = document.getElementById('inputScanCode');
+    const query = (inputScanCode?.value || '').trim();
+
+    if (!query) {
+      alert('Masukkan kode pesanan atau nama pelanggan terlebih dahulu.');
+      return;
+    }
+
+    const exactOrder = window.sativaStore.getOrderById(query);
+    if (exactOrder) {
+      this.activeOrderInScan = exactOrder;
+      if (inputScanCode) inputScanCode.value = exactOrder.id;
+      this.renderScanOrderDetail();
+      return;
+    }
+
+    const matchedOrders = window.sativaStore.searchOrders(query);
+
+    if (matchedOrders.length === 1) {
+      this.activeOrderInScan = matchedOrders[0];
+      if (inputScanCode) inputScanCode.value = matchedOrders[0].id;
+      this.renderScanOrderDetail();
+    } else if (matchedOrders.length > 1) {
+      this.showScanSearchResults(matchedOrders, query);
+    } else {
+      alert('Pesanan tidak ditemukan. Periksa kembali kode atau nama pelanggan.');
+    }
+  }
+
+  showScanSearchResults(orders, query) {
+    const scanOrderHeader = document.getElementById('scanOrderHeader');
+    const scanOrderDetails = document.getElementById('scanOrderDetails');
+    const scanHistoryContainer = document.getElementById('scanHistoryContainer');
+    const scanNextStepNote = document.getElementById('scanNextStepNote');
+    const statusGroup = document.getElementById('scanStatusTransitionSelect')?.closest('.form-group');
+    const shelfGroup = document.getElementById('scanShelfGroup');
+    const btnConfirm = document.getElementById('btnConfirmStatus');
+    const scanConfirmNote = document.getElementById('scanConfirmNote');
+    const waBanner = document.getElementById('scanWABanner');
+
+    if (scanOrderHeader) {
+      scanOrderHeader.textContent = `${orders.length} pesanan ditemukan`;
+    }
+    if (scanOrderDetails) {
+      scanOrderDetails.textContent = `Hasil pencarian untuk "${query}". Pilih pesanan di bawah:`;
+    }
+    if (statusGroup) statusGroup.style.display = 'none';
+    if (shelfGroup) shelfGroup.style.display = 'none';
+    if (scanNextStepNote) scanNextStepNote.style.display = 'none';
+    if (btnConfirm) btnConfirm.style.display = 'none';
+    if (scanConfirmNote) scanConfirmNote.style.display = 'none';
+
+    if (scanHistoryContainer) {
+      scanHistoryContainer.innerHTML = orders.map(o => `
+        <div class="scan-search-result-item" data-pick-order="${o.id}" style="padding: 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); margin-bottom: 0.5rem; cursor: pointer; transition: background 0.15s;">
+          <div style="font-weight: 700; color: var(--slate-900); margin-bottom: 0.25rem;">${o.id} · ${o.customerName}</div>
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary);">${o.service} · ${o.weight} kg · ${o.status}</div>
+        </div>
+      `).join('');
+
+      scanHistoryContainer.querySelectorAll('[data-pick-order]').forEach(item => {
+        item.addEventListener('click', () => {
+          const orderId = item.getAttribute('data-pick-order');
+          const order = window.sativaStore.getOrderById(orderId);
+          if (order) {
+            this.activeOrderInScan = order;
+            const inputEl = document.getElementById('inputScanCode');
+            if (inputEl) inputEl.value = order.id;
+            this.renderScanOrderDetail();
+          }
+        });
+
+        item.addEventListener('mouseenter', () => {
+          item.style.backgroundColor = '#F8FAFC';
+        });
+        item.addEventListener('mouseleave', () => {
+          item.style.backgroundColor = '';
+        });
+      });
+    }
+
+    if (waBanner) waBanner.style.display = 'none';
+  }
+
   renderScanQR() {
-    const order = this.activeOrderInScan || window.sativaStore.getOrderById('STL-261114-021') || window.sativaStore.getOrders()[0];
+    const order = this.activeOrderInScan;
+    if (order) {
+      this.renderScanOrderDetail();
+    } else {
+      this.resetScanPanel();
+    }
+  }
+
+  resetScanPanel() {
+    const scanOrderHeader = document.getElementById('scanOrderHeader');
+    const scanOrderDetails = document.getElementById('scanOrderDetails');
+    const currentStatusText = document.getElementById('scanCurrentStatusText');
+    const statusSelect = document.getElementById('scanStatusTransitionSelect');
+    const statusGroup = statusSelect?.closest('.form-group');
+    const shelfGroup = document.getElementById('scanShelfGroup');
+    const scanNextStepNote = document.getElementById('scanNextStepNote');
+    const btnConfirm = document.getElementById('btnConfirmStatus');
+    const scanConfirmNote = document.getElementById('scanConfirmNote');
+    const scanHistoryContainer = document.getElementById('scanHistoryContainer');
+    const waBanner = document.getElementById('scanWABanner');
+
+    if (scanOrderHeader) scanOrderHeader.textContent = 'Belum ada pesanan';
+    if (scanOrderDetails) scanOrderDetails.textContent = 'Pindai QR atau masukkan kode/nama pelanggan untuk mencari pesanan.';
+    if (statusGroup) statusGroup.style.display = '';
+    if (currentStatusText) currentStatusText.textContent = '–';
+    if (statusSelect) {
+      statusSelect.value = 'Diterima';
+      statusSelect.disabled = true;
+    }
+    if (shelfGroup) shelfGroup.style.display = 'none';
+    if (scanNextStepNote) {
+      scanNextStepNote.style.display = '';
+      scanNextStepNote.textContent = 'Pilih pesanan terlebih dahulu untuk memperbarui tahap pengerjaan.';
+    }
+    if (btnConfirm) {
+      btnConfirm.style.display = '';
+      btnConfirm.disabled = true;
+    }
+    if (scanConfirmNote) {
+      scanConfirmNote.style.display = '';
+      scanConfirmNote.textContent = 'Pilih pesanan terlebih dahulu untuk memperbarui status.';
+    }
+    if (scanHistoryContainer) scanHistoryContainer.innerHTML = '<div style="color: var(--slate-500); font-size: 0.85rem;">Belum ada riwayat.</div>';
+    if (waBanner) waBanner.style.display = 'none';
+  }
+
+  updateScanTransitionUI(targetStatus) {
+    const shelfGroup = document.getElementById('scanShelfGroup');
+    const scanNextStepNote = document.getElementById('scanNextStepNote');
+    const scanConfirmNote = document.getElementById('scanConfirmNote');
+
+    if (shelfGroup) {
+      shelfGroup.style.display = targetStatus === 'Selesai' ? 'flex' : 'none';
+    }
+
+    const noteMap = {
+      'Diterima': {
+        next: 'Status akan diubah ke Diterima. Waktu perubahan tercatat otomatis.',
+        confirm: 'Setelah berhasil: status pesanan diperbarui menjadi Diterima.'
+      },
+      'Dicuci': {
+        next: 'Tahap berikutnya: pakaian masuk proses pencucian. Waktu perubahan tercatat otomatis.',
+        confirm: 'Setelah berhasil: status pesanan diperbarui menjadi Dicuci.'
+      },
+      'Disetrika': {
+        next: 'Tahap berikutnya: pakaian masuk proses penyetrikaan. Waktu perubahan tercatat otomatis.',
+        confirm: 'Setelah berhasil: status pesanan diperbarui menjadi Disetrika.'
+      },
+      'Selesai': {
+        next: 'Tahap berikutnya: selesai dan siap diambil. Waktu perubahan tercatat otomatis.',
+        confirm: 'Setelah berhasil: status menjadi Selesai dan notifikasi WhatsApp dikirim otomatis.'
+      },
+      'Diambil': {
+        next: 'Tahap berikutnya: konfirmasi pengambilan oleh pelanggan. Waktu perubahan tercatat otomatis.',
+        confirm: 'Setelah berhasil: status pesanan diperbarui menjadi Diambil.'
+      }
+    };
+
+    const info = noteMap[targetStatus] || {
+      next: 'Waktu perubahan tercatat otomatis.',
+      confirm: `Setelah berhasil: status pesanan diperbarui menjadi ${targetStatus}.`
+    };
+
+    if (scanNextStepNote) scanNextStepNote.textContent = info.next;
+    if (scanConfirmNote) scanConfirmNote.textContent = info.confirm;
+  }
+
+  renderScanOrderDetail(preserveWABanner = false) {
+    const order = this.activeOrderInScan;
     if (!order) return;
 
-    this.activeOrderInScan = order;
-
     const inputCode = document.getElementById('inputScanCode');
-    if (inputCode) inputCode.value = order.id;
+    if (inputCode && !inputCode.value) inputCode.value = order.id;
 
     const scanOrderHeader = document.getElementById('scanOrderHeader');
     const scanOrderDetails = document.getElementById('scanOrderDetails');
+    const currentStatusText = document.getElementById('scanCurrentStatusText');
     const statusTransitionSelect = document.getElementById('scanStatusTransitionSelect');
+    const statusGroup = statusTransitionSelect?.closest('.form-group');
     const shelfSelect = document.getElementById('scanShelfSelect');
+    const scanNextStepNote = document.getElementById('scanNextStepNote');
+    const btnConfirm = document.getElementById('btnConfirmStatus');
+    const scanConfirmNote = document.getElementById('scanConfirmNote');
     const scanHistoryContainer = document.getElementById('scanHistoryContainer');
+    const waBanner = document.getElementById('scanWABanner');
+
+    if (statusGroup) statusGroup.style.display = '';
+    if (scanNextStepNote) scanNextStepNote.style.display = '';
+    if (btnConfirm) {
+      btnConfirm.style.display = '';
+      btnConfirm.disabled = false;
+    }
+    if (scanConfirmNote) scanConfirmNote.style.display = '';
+
+    if (waBanner && (!preserveWABanner || order.status !== 'Selesai')) {
+      waBanner.style.display = 'none';
+    }
 
     if (scanOrderHeader) {
       scanOrderHeader.textContent = `${order.id} · ${order.customerName}`;
@@ -632,20 +1166,32 @@ class SativaApp {
     if (scanOrderDetails) {
       scanOrderDetails.textContent = `${order.service} · ${order.weight} kg · Lunas ${formatRupiah(order.total)}`;
     }
+    if (currentStatusText) {
+      currentStatusText.textContent = order.status;
+    }
+
+    const nextRecommendedMap = {
+      'Diterima': 'Dicuci',
+      'Dicuci': 'Disetrika',
+      'Disetrika': 'Selesai',
+      'Selesai': 'Diambil',
+      'Diambil': 'Diambil'
+    };
+    const recommendedNext = nextRecommendedMap[order.status] || 'Dicuci';
 
     if (statusTransitionSelect) {
-      if (order.status === 'Disetrika') {
-        statusTransitionSelect.innerHTML = `<option value="Selesai" selected>Disetrika → Selesai</option>`;
-      } else if (order.status === 'Diterima') {
-        statusTransitionSelect.innerHTML = `<option value="Dicuci" selected>Diterima → Dicuci</option>`;
-      } else if (order.status === 'Dicuci') {
-        statusTransitionSelect.innerHTML = `<option value="Disetrika" selected>Dicuci → Disetrika</option>`;
-      } else if (order.status === 'Selesai') {
-        statusTransitionSelect.innerHTML = `<option value="Diambil" selected>Selesai → Diambil</option>`;
-      } else {
-        statusTransitionSelect.innerHTML = `<option value="${order.status}" selected>${order.status}</option>`;
-      }
+      statusTransitionSelect.disabled = false;
+      statusTransitionSelect.innerHTML = `
+        <option value="Diterima">Diterima</option>
+        <option value="Dicuci">Dicuci</option>
+        <option value="Disetrika">Disetrika</option>
+        <option value="Selesai">Selesai</option>
+        <option value="Diambil">Diambil</option>
+      `;
+      statusTransitionSelect.value = recommendedNext;
     }
+
+    this.updateScanTransitionUI(recommendedNext);
 
     if (shelfSelect) {
       shelfSelect.value = order.shelf || '01';
@@ -668,14 +1214,38 @@ class SativaApp {
     const nextStatusSelect = document.getElementById('scanStatusTransitionSelect');
     const shelfSelect = document.getElementById('scanShelfSelect');
     const targetStatus = nextStatusSelect?.value || 'Selesai';
-    const shelf = shelfSelect?.value || '01';
+    const shelf = targetStatus === 'Selesai' ? (shelfSelect?.value || '01') : '';
 
     const updated = window.sativaStore.updateOrderStatus(order.id, targetStatus, shelf);
     if (updated) {
       this.activeOrderInScan = updated;
-      alert(`Status pesanan ${updated.id} berhasil diperbarui menjadi "${targetStatus}".`);
-      this.renderScanQR();
+
+      const waBanner = document.getElementById('scanWABanner');
+      const bannerTitle = document.getElementById('scanWABannerTitle');
+      const bannerDesc = document.getElementById('scanWABannerDesc');
+
+      if (targetStatus === 'Selesai' && waBanner) {
+        waBanner.style.display = '';
+        waBanner.classList.remove('alert-success-banner');
+        waBanner.classList.add('alert-danger-banner');
+        if (bannerTitle) {
+          bannerTitle.innerHTML = '<span>⚠</span> Status tersimpan · WhatsApp gagal';
+        }
+        if (bannerDesc) {
+          bannerDesc.textContent = 'Gangguan gateway tidak membatalkan perubahan status. Petugas dapat melihat kegagalan pengiriman.';
+        }
+      } else if (waBanner) {
+        waBanner.style.display = 'none';
+      }
+
+      this.renderScanOrderDetail(targetStatus === 'Selesai');
       this.renderDashboard();
+
+      const dialogStatusDesc = document.getElementById('dialogStatusDiubahDesc');
+      if (dialogStatusDesc) {
+        dialogStatusDesc.textContent = `Status pesanan ${updated.id} · ${updated.customerName} berhasil dirubah menjadi "${targetStatus}".`;
+      }
+      this.openModal('modalStatusDiubah');
     }
   }
 
@@ -761,11 +1331,20 @@ class SativaApp {
   }
 
   renderCustomers() {
+    this.selectedCustomer = null;
+    const searchInput = document.getElementById('searchCustomerInput');
+    if (searchInput) searchInput.value = '';
+    this.clearEditCustomerForm();
     this.filterAndRenderCustomers();
-    const rani = window.sativaStore.getCustomerByName('Rani');
-    if (rani) {
-      this.populateEditCustomerForm(rani);
-    }
+  }
+
+  clearEditCustomerForm() {
+    const nameInput = document.getElementById('editCustomerName');
+    const phoneInput = document.getElementById('editCustomerPhone');
+    const addressInput = document.getElementById('editCustomerAddress');
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (addressInput) addressInput.value = '';
   }
 
   filterAndRenderCustomers() {
@@ -822,7 +1401,10 @@ class SativaApp {
   }
 
   saveCustomerChanges() {
-    if (!this.selectedCustomer) return;
+    if (!this.selectedCustomer) {
+      alert('Pilih pelanggan dari tabel atau pencarian terlebih dahulu!');
+      return;
+    }
 
     const name = document.getElementById('editCustomerName')?.value || '';
     const phone = document.getElementById('editCustomerPhone')?.value || '';
@@ -893,14 +1475,20 @@ class SativaApp {
   }
 
   renderExpenses() {
+    const expenseDateInput = document.getElementById('expenseDate');
+    if (expenseDateInput && !expenseDateInput.value) {
+      expenseDateInput.value = getTodayISO();
+    }
+
     const todayData = window.sativaStore.getTodayExpensesTotal();
 
     const totalEl = document.getElementById('expenseTotalAmount');
     const countEl = document.getElementById('expenseTotalCount');
     const listBody = document.getElementById('expenseListBody');
 
+    const displayDate = formatIndonesianDate(expenseDateInput?.value || getTodayISO(), false);
     if (totalEl) totalEl.textContent = formatRupiah(todayData.total);
-    if (countEl) countEl.textContent = `${todayData.count} catatan · 16 November 2026`;
+    if (countEl) countEl.textContent = `${todayData.count} catatan · ${displayDate}`;
 
     if (!listBody) return;
 
@@ -918,7 +1506,8 @@ class SativaApp {
     const category = document.getElementById('expenseCategory')?.value || 'Bahan laundry';
     const amountStr = document.getElementById('expenseAmount')?.value || '0';
     const amount = parseInt(amountStr.replace(/\D/g, '')) || 0;
-    const date = document.getElementById('expenseDate')?.value || '16 November 2026';
+    const rawDate = document.getElementById('expenseDate')?.value || getTodayISO();
+    const date = formatIndonesianDate(rawDate, false);
 
     if (!desc || amount <= 0) {
       alert('Keterangan dan nominal (> Rp0) wajib diisi!');
@@ -940,7 +1529,8 @@ class SativaApp {
 
     this.renderExpenses();
     document.getElementById('formExpense')?.reset();
-    document.getElementById('expenseDate').value = '16 November 2026';
+    const expDateEl = document.getElementById('expenseDate');
+    if (expDateEl) expDateEl.value = getTodayISO();
     document.getElementById('expenseAmount').value = 'Rp30.000';
 
     this.openModal('modalPengeluaranTersimpan');

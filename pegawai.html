@@ -29,9 +29,9 @@
   </nav>
 
   <div class="app-layout">
-    <aside class="app-sidebar" aria-label="Sidebar Kasir Desktop">
+    <aside class="app-sidebar" aria-label="Sidebar Pegawai Desktop">
       <div>
-        <div class="sidebar-label">KASIR</div>
+        <div class="sidebar-label">PEGAWAI</div>
         <ul class="sidebar-menu">
           <li>
             <a href="#pesanan" class="sidebar-link active" data-nav-target="pesanan">Pesanan</a>
@@ -143,13 +143,13 @@
               <div class="form-group">
                 <label for="newOrderCustomerInput" class="form-label">Cari pelanggan lama</label>
                 <div class="combobox-container">
-                  <input type="text" id="newOrderCustomerInput" class="form-input" placeholder="Ketik nama pelanggan..." value="Rani" autocomplete="off">
+                  <input type="text" id="newOrderCustomerInput" class="form-input" placeholder="Ketik nama pelanggan..." autocomplete="off">
                   <div id="newOrderCustomerDropdown" class="combobox-dropdown"></div>
                 </div>
               </div>
 
               <div id="newOrderCustomerPreview" class="text-secondary" style="font-size: 0.875rem; margin-bottom: 1.25rem; line-height: 1.5;">
-                Rani · 0812-0000-0021 (contoh)<br>Jl. Sigura-Gura, Malang
+                Belum ada pelanggan dipilih. Ketik nama untuk mencari atau daftarkan pelanggan baru.
               </div>
 
               <button type="button" id="btnOpenAddCustomerModal" class="btn btn-white btn-block">
@@ -186,8 +186,11 @@
               </div>
 
               <div class="form-group">
-                <label for="newOrderEstimate" class="form-label">Estimasi selesai</label>
-                <input type="text" id="newOrderEstimate" class="form-input" value="16 Nov 2026 · 17.00 WIB">
+                <label for="newOrderEstimateDate" class="form-label">Estimasi selesai</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <input type="date" id="newOrderEstimateDate" class="form-input" required>
+                  <input type="text" id="newOrderEstimateTime" class="form-input" value="17:00" readonly style="cursor: pointer; background-color: #FFFFFF;" required>
+                </div>
               </div>
 
               <div class="form-group">
@@ -343,12 +346,12 @@
 
         <div class="two-col-layout">
           <div>
-            <div class="scanner-viewport">
-              <div class="scanner-box">
-                <div class="scanner-laser"></div>
+            <div class="scanner-viewport" id="scannerViewport">
+              <video id="cameraStream" class="camera-video" autoplay playsinline></video>
+              <div id="scannerOverlay" class="scanner-overlay">
+                <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Pindai QR pesanan</div>
+                <p style="font-size: 0.85rem; color: #94A3B8;">Arahkan QR label ke kamera</p>
               </div>
-              <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Pindai QR pesanan</div>
-              <p style="font-size: 0.85rem; color: #94A3B8;">Arahkan QR label ke kamera</p>
             </div>
 
             <button type="button" id="btnActivateCamera" class="btn btn-white btn-block" style="margin: 1rem 0 1.5rem;">
@@ -356,8 +359,11 @@
             </button>
 
             <div class="form-group">
-              <label for="inputScanCode" class="form-label" style="font-size: 0.8rem;">Alternatif input kode</label>
-              <input type="text" id="inputScanCode" class="form-input" value="STL-261114-021" placeholder="Masukkan kode pesanan">
+              <label for="inputScanCode" class="form-label" style="font-size: 0.8rem;">Alternatif input kode / nama pelanggan</label>
+              <div class="combobox-container">
+                <input type="text" id="inputScanCode" class="form-input" placeholder="Masukkan kode pesanan atau nama pelanggan" autocomplete="off">
+                <div id="scanOrderDropdown" class="combobox-dropdown"></div>
+              </div>
             </div>
 
             <button type="button" id="btnSearchScanCode" class="btn btn-white btn-block" style="margin-bottom: 1.5rem;">
@@ -384,12 +390,20 @@
 
               <div class="form-group">
                 <label for="scanStatusTransitionSelect" class="form-label">Perubahan tahap:</label>
-                <select id="scanStatusTransitionSelect" class="form-select" style="font-size: 1.1rem; font-weight: 700; color: var(--slate-900);">
-                  <option value="Selesai" selected>Disetrika → Selesai</option>
-                </select>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span id="scanCurrentStatusText" style="font-size: 1.05rem; font-weight: 700; color: var(--slate-900); white-space: nowrap;">Disetrika</span>
+                  <span style="font-size: 1.1rem; font-weight: 700; color: var(--color-text-secondary);">→</span>
+                  <select id="scanStatusTransitionSelect" class="form-select" style="font-size: 1.05rem; font-weight: 700; color: var(--slate-900); flex: 1;">
+                    <option value="Diterima">Diterima</option>
+                    <option value="Dicuci">Dicuci</option>
+                    <option value="Disetrika">Disetrika</option>
+                    <option value="Selesai" selected>Selesai</option>
+                    <option value="Diambil">Diambil</option>
+                  </select>
+                </div>
               </div>
 
-              <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+              <div id="scanShelfGroup" class="form-group" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
                 <label for="scanShelfSelect" class="form-label" style="margin-bottom: 0; font-weight: 700;">
                   Ditaruh Pada Rak Nomor :
                 </label>
@@ -409,8 +423,8 @@
                 Konfirmasi
               </button>
 
-              <p class="text-secondary" style="font-size: 0.8rem; text-align: center;">
-                Setelah berhasil: status menjadi Selesai dan notifikasi WhatsApp dikirim otomatis.
+              <p id="scanConfirmNote" class="text-secondary" style="font-size: 0.8rem; text-align: center;">
+                Setelah berhasil: status diperbarui dan notifikasi WhatsApp dikirim otomatis.
               </p>
             </div>
 
@@ -450,7 +464,7 @@
             <div class="form-group">
               <label for="searchCustomerInput" class="form-label">Cari berdasarkan nama</label>
               <div class="combobox-container">
-                <input type="text" id="searchCustomerInput" class="form-input" value="Rani" placeholder="Ketik nama pelanggan..." autocomplete="off">
+                <input type="text" id="searchCustomerInput" class="form-input" placeholder="Ketik nama pelanggan..." autocomplete="off">
                 <div id="searchCustomerDropdown" class="combobox-dropdown"></div>
               </div>
             </div>
@@ -490,18 +504,18 @@
               <form id="formEditCustomer" novalidate>
                 <div class="form-group">
                   <label for="editCustomerName" class="form-label">Nama lengkap <span class="required">*</span></label>
-                  <input type="text" id="editCustomerName" class="form-input" value="Rani" required>
+                  <input type="text" id="editCustomerName" class="form-input" placeholder="Pilih pelanggan terlebih dahulu" required>
                 </div>
 
                 <div class="form-group">
                   <label for="editCustomerPhone" class="form-label">Nomor WhatsApp <span class="required">*</span></label>
-                  <input type="text" id="editCustomerPhone" class="form-input" value="0812-0000-0021" required>
+                  <input type="text" id="editCustomerPhone" class="form-input" placeholder="0812-xxxx-xxxx" required>
                   <div class="form-helper">Gunakan nomor aktif yang terhubung ke WhatsApp.</div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1.5rem;">
                   <label for="editCustomerAddress" class="form-label">Alamat <span class="required">*</span></label>
-                  <input type="text" id="editCustomerAddress" class="form-input" value="Jl. Sigura-Gura, Malang" required>
+                  <input type="text" id="editCustomerAddress" class="form-input" placeholder="Alamat pelanggan" required>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
@@ -535,7 +549,7 @@
               <form id="formExpense" novalidate>
                 <div class="form-group">
                   <label for="expenseDate" class="form-label">Tanggal <span class="required">*</span></label>
-                  <input type="text" id="expenseDate" class="form-input" value="16 November 2026" required>
+                  <input type="date" id="expenseDate" class="form-input" required>
                 </div>
 
                 <div class="form-group">
@@ -649,6 +663,19 @@
     </div>
   </div>
 
+  <div id="modalStatusDiubah" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-tag">BERHASIL</div>
+      <h3 class="modal-title">Status berhasil dirubah</h3>
+      <p id="dialogStatusDiubahDesc" class="modal-desc">
+        Status pesanan berhasil diperbarui.
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalStatusDiubah">
+        Selesai
+      </button>
+    </div>
+  </div>
+
   <div id="modalPelangganBaruTerdaftar" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-tag">BERHASIL</div>
@@ -738,6 +765,32 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div id="modalTimePicker" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog time-picker-dialog">
+      <div class="time-picker-label">PILIH WAKTU</div>
+      <div class="time-picker-display">
+        <button type="button" id="tpHourBox" class="tp-num-box active">05</button>
+        <span class="tp-colon">:</span>
+        <button type="button" id="tpMinuteBox" class="tp-num-box">00</button>
+        <div class="tp-ampm-group">
+          <button type="button" id="tpAmBtn" class="tp-ampm-btn">AM</button>
+          <button type="button" id="tpPmBtn" class="tp-ampm-btn active">PM</button>
+        </div>
+      </div>
+
+      <div class="tp-clock-face" id="tpClockFace">
+        <div class="tp-clock-center"></div>
+        <div class="tp-clock-hand" id="tpClockHand"></div>
+        <div id="tpClockNumbers"></div>
+      </div>
+
+      <div class="tp-actions">
+        <button type="button" id="tpCancelBtn" class="tp-action-btn">BATAL</button>
+        <button type="button" id="tpOkBtn" class="tp-action-btn">OK</button>
+      </div>
     </div>
   </div>
 
