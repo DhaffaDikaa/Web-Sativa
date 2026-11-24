@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk ke Ruang Kerja - Sativa Laundry</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/login.css">
+</head>
+<body>
+  <header class="app-header">
+    <a href="login.html" class="brand-container">
+      <img src="assets/img/Logo.png" alt="Sativa Laundry Logo" class="brand-logo">
+    </a>
+    <span class="user-pill-badge" tabindex="0">Internal</span>
+  </header>
+
+  <main class="login-page-container">
+    <section class="login-hero-card" aria-hidden="true">
+      <h1 class="login-hero-title">Operasional rapi. Pelanggan senang.</h1>
+      <p class="login-hero-text">
+        Kelola pesanan, pantau proses laundry, dan lihat perkembangan usaha dalam satu ruang kerja.
+      </p>
+    </section>
+
+    <section class="login-card-form">
+      <span class="login-badge-pill">AKSES INTERNAL</span>
+      <h2 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 0.35rem; color: var(--slate-900);">Masuk ke ruang kerja</h2>
+      <p class="text-secondary" style="font-size: 0.95rem; margin-bottom: 1.5rem;">Khusus kasir dan pemilik Sativa Laundry.</p>
+
+      <form id="loginForm" autocomplete="off" novalidate>
+        <div class="form-group">
+          <label for="usernameInput" class="form-label">Nama pengguna</label>
+          <input 
+            type="text" 
+            id="usernameInput" 
+            class="form-input" 
+            placeholder="Masukkan nama pengguna" 
+            required
+            aria-describedby="loginErrorMsg"
+          >
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="passwordInput" class="form-label">Kata sandi</label>
+          <input 
+            type="password" 
+            id="passwordInput" 
+            class="form-input" 
+            placeholder="••••••••" 
+            required
+            aria-describedby="loginErrorMsg"
+          >
+        </div>
+
+        <button type="submit" id="btnLogin" class="btn btn-blue btn-block">
+          Masuk
+        </button>
+
+        <div id="loginErrorMsg" class="form-error-msg" style="display: none; text-align: left; margin: 1rem 0 0.5rem;" role="alert">
+          Pesan Gagal : nama pengguna atau kata sandi tidak sesuai.
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+          <a href="#" id="btnPelanggan" class="btn btn-white btn-block" style="border: 1px solid var(--color-border-subtle); color: var(--sky-700);">
+            Ke halaman pelacakan pelanggan
+          </a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    © 2026 Sativa Laundry
+  </footer>
+
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('loginForm');
+      const usernameInput = document.getElementById('usernameInput');
+      const passwordInput = document.getElementById('passwordInput');
+      const errorMsg = document.getElementById('loginErrorMsg');
+      const btnPelanggan = document.getElementById('btnPelanggan');
+
+      [usernameInput, passwordInput].forEach(input => {
+        input.addEventListener('input', () => {
+          errorMsg.style.display = 'none';
+        });
+      });
+
+      function handleLogin() {
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+
+        const result = window.sativaAuth.login(username, password);
+        if (result.success) {
+          window.location.href = result.redirect;
+        } else {
+          errorMsg.textContent = result.message;
+          errorMsg.style.display = 'block';
+        }
+      }
+
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleLogin();
+      });
+
+      btnPelanggan.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('Menuju ke halaman pelacakan pelanggan (Lacak Laundry publik).');
+      });
+    });
+  </script>
+</body>
+</html>

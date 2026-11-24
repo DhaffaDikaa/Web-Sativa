@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir Pegawai - Sativa Laundry</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/pegawai.css">
+</head>
+<body>
+  <header class="app-header">
+    <a href="pegawai.html#pesanan" class="brand-container">
+      <img src="assets/img/Logo.png" alt="Sativa Laundry Logo" class="brand-logo">
+    </a>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <button type="button" class="user-pill-badge" id="userPillBtn" title="Klik untuk keluar">
+        Pegawai
+      </button>
+    </div>
+  </header>
+
+  <nav class="mobile-nav-bar" aria-label="Navigasi Kasir Mobile">
+    <div class="mobile-nav-grid">
+      <a href="#pesanan" class="mobile-nav-link active" data-nav-target="pesanan">Pesanan</a>
+      <a href="#scan-qr" class="mobile-nav-link" data-nav-target="scan-qr">Scan QR</a>
+      <a href="#pelanggan" class="mobile-nav-link" data-nav-target="pelanggan">Pelanggan</a>
+      <a href="#pengeluaran" class="mobile-nav-link" data-nav-target="pengeluaran">Pengeluaran</a>
+    </div>
+  </nav>
+
+  <div class="app-layout">
+    <aside class="app-sidebar" aria-label="Sidebar Kasir Desktop">
+      <div>
+        <div class="sidebar-label">KASIR</div>
+        <ul class="sidebar-menu">
+          <li>
+            <a href="#pesanan" class="sidebar-link active" data-nav-target="pesanan">Pesanan</a>
+          </li>
+          <li>
+            <a href="#scan-qr" class="sidebar-link" data-nav-target="scan-qr">Scan QR</a>
+          </li>
+          <li>
+            <a href="#pelanggan" class="sidebar-link" data-nav-target="pelanggan">Pelanggan</a>
+          </li>
+          <li>
+            <a href="#pengeluaran" class="sidebar-link" data-nav-target="pengeluaran">Pengeluaran</a>
+          </li>
+        </ul>
+        <div class="sidebar-footer-info">
+          <p>Operasional toko</p>
+          <p style="font-weight: 600; color: var(--slate-900);">08.00–21.00 WIB</p>
+        </div>
+      </div>
+    </aside>
+
+    <main class="app-content">
+
+      <section id="view-pesanan" class="tab-view">
+        <div class="page-header">
+          <h1 class="page-title">Pesanan laundry</h1>
+          <p class="page-subtitle">Senin, 16 November 2026 · Ringkasan operasional kasir</p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <button type="button" id="btnGoNewOrder" class="btn btn-blue" style="flex: 1; min-width: 200px;">
+            + Pesanan baru
+          </button>
+          <button type="button" id="btnGoScanOrder" class="btn btn-white" style="flex: 1; min-width: 200px;">
+            Scan QR pesanan
+          </button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Aktif dikerjakan</span>
+            <span class="stat-value" id="statActiveCount">6 pesanan</span>
+            <span class="stat-desc">Diterima / dicuci / disetrika</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Siap diambil</span>
+            <span class="stat-value" id="statReadyCount">2 pesanan</span>
+            <span class="stat-desc">Sudah selesai dikerjakan</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Kapasitas toko</span>
+            <span class="stat-value" id="statCapacity">12 / 200 kg</span>
+            <span class="stat-desc" id="statCapacityDesc">Normal · tersisa 188 kg</span>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="search-box">
+            <label for="searchOrderInput" class="form-label" style="font-size: 0.8rem;">Cari pesanan</label>
+            <input type="text" id="searchOrderInput" class="form-input" placeholder="Cari ID atau nama pelanggan">
+          </div>
+          <div class="filter-select">
+            <label for="filterStatusSelect" class="form-label" style="font-size: 0.8rem;">Status</label>
+            <select id="filterStatusSelect" class="form-select">
+              <option value="Semua status">Semua status</option>
+              <option value="Diterima">Diterima</option>
+              <option value="Dicuci">Dicuci</option>
+              <option value="Disetrika">Disetrika</option>
+              <option value="Selesai">Selesai</option>
+              <option value="Diambil">Diambil</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" aria-label="Daftar pesanan kasir">
+            <thead>
+              <tr>
+                <th style="width: 28%;">Kode / pelanggan</th>
+                <th style="width: 22%;">Layanan</th>
+                <th style="width: 14%;">Berat</th>
+                <th style="width: 20%;">Status</th>
+                <th style="width: 16%;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mobile-order-cards" id="mobileOrdersList">
+        </div>
+
+        <p id="ordersCountNote" class="text-secondary" style="font-size: 0.8rem; margin-top: 1.25rem;">
+          8 pesanan ditampilkan · Beban aktif tidak termasuk pesanan selesai atau diambil.
+        </p>
+      </section>
+
+      <section id="view-pesanan-baru" class="tab-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Buat pesanan baru</h1>
+          <p class="page-subtitle">1. Pilih pelanggan &nbsp;/&nbsp; 2. Isi laundry &nbsp;/&nbsp; 3. Konfirmasi pembayaran</p>
+        </div>
+
+        <form id="formNewOrder" class="two-col-layout">
+          <div>
+            <div class="section-box">
+              <div class="section-box-title">01 Pelanggan</div>
+              <div class="form-group">
+                <label for="newOrderCustomerInput" class="form-label">Cari pelanggan lama</label>
+                <div class="combobox-container">
+                  <input type="text" id="newOrderCustomerInput" class="form-input" placeholder="Ketik nama pelanggan..." value="Rani" autocomplete="off">
+                  <div id="newOrderCustomerDropdown" class="combobox-dropdown"></div>
+                </div>
+              </div>
+
+              <div id="newOrderCustomerPreview" class="text-secondary" style="font-size: 0.875rem; margin-bottom: 1.25rem; line-height: 1.5;">
+                Rani · 0812-0000-0021 (contoh)<br>Jl. Sigura-Gura, Malang
+              </div>
+
+              <button type="button" id="btnOpenAddCustomerModal" class="btn btn-white btn-block">
+                + Daftarkan pelanggan baru
+              </button>
+            </div>
+
+            <div class="section-box">
+              <div class="section-box-title">02 Detail laundry</div>
+
+              <div class="form-group">
+                <label for="newOrderService" class="form-label">Jenis layanan</label>
+                <select id="newOrderService" class="form-select">
+                  <option value="Cuci + setrika reguler" selected>Cuci + setrika reguler</option>
+                  <option value="Cuci kering reguler">Cuci kering reguler</option>
+                  <option value="Setrika saja">Setrika saja</option>
+                </select>
+              </div>
+
+              <div style="grid-template-columns: 1fr 1fr; display: grid; gap: 1rem;">
+                <div class="form-group">
+                  <label for="newOrderWeight" class="form-label">Berat pakaian</label>
+                  <input type="number" id="newOrderWeight" class="form-input" value="3" min="1" step="0.5" required>
+                </div>
+                <div class="form-group">
+                  <label for="newOrderRate" class="form-label">Tarif per kg</label>
+                  <input type="text" id="newOrderRate" class="form-input" value="Rp7.000" readonly>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="newOrderItems" class="form-label">Rincian item</label>
+                <input type="text" id="newOrderItems" class="form-input" value="Pakaian campur" placeholder="Contoh: Pakaian campur">
+              </div>
+
+              <div class="form-group">
+                <label for="newOrderEstimate" class="form-label">Estimasi selesai</label>
+                <input type="text" id="newOrderEstimate" class="form-input" value="16 Nov 2026 · 17.00 WIB">
+              </div>
+
+              <div class="form-group">
+                <label for="newOrderNotes" class="form-label">Catatan</label>
+                <input type="text" id="newOrderNotes" class="form-input" value="Pisahkan pakaian putih" placeholder="Catatan tambahan untuk proses cuci">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <h3 class="card-title">Ringkasan</h3>
+              
+              <div class="text-secondary" style="font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Tanggal masuk<br>
+                <span style="color: var(--slate-900); font-weight: 500;">14 November 2026 · 09.00</span>
+              </div>
+
+              <div id="summaryServiceLine" class="text-secondary" style="font-size: 0.95rem; margin-bottom: 1.25rem; line-height: 1.5;">
+                Cuci + setrika reguler<br>
+                3 kg × Rp7.000
+              </div>
+
+              <div id="summaryTotalAmount" style="font-size: 1.5rem; font-weight: 800; color: var(--slate-900); margin-bottom: 1.25rem;">
+                Total Rp21.000
+              </div>
+
+              <div class="form-group">
+                <label for="newOrderPaymentMethod" class="form-label">Metode pembayaran</label>
+                <select id="newOrderPaymentMethod" class="form-select">
+                  <option value="Tunai" selected>Tunai</option>
+                  <option value="QRIS">QRIS</option>
+                  <option value="Transfer">Transfer</option>
+                </select>
+              </div>
+
+              <div id="summaryPaymentNote" style="font-weight: 700; color: var(--slate-900); font-size: 0.95rem; margin-bottom: 0.5rem;">
+                Pembayaran Rp21.000 diterima
+              </div>
+
+              <p class="text-secondary" style="font-size: 0.8rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                Setelah disimpan: ID & QR dibuat, label dicetak otomatis, struk dikirim ke WhatsApp.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button type="submit" class="btn btn-blue btn-block">
+                  Simpan & buat pesanan
+                </button>
+                <button type="button" id="btnCancelNewOrder" class="btn btn-white btn-block">
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section id="view-nota-qr" class="tab-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Pesanan berhasil dibuat</h1>
+          <p id="receiptPageSubtitle" class="page-subtitle">STL-261114-021 · 14 November 2026, 09.00 WIB</p>
+        </div>
+
+        <div class="two-col-layout">
+          <div class="receipt-card">
+            <div class="receipt-title">SATIVA LAUNDRY</div>
+            <div class="receipt-subtitle">BUKTI PEMBAYARAN</div>
+            <div id="receiptOrderCode" style="font-weight: 700; color: var(--slate-900); margin-bottom: 0.5rem;">
+              STL-261114-021
+            </div>
+
+            <div id="receiptCustomerInfo" class="text-secondary" style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 1rem;">
+              14 Nov 2026 · 09.00<br>
+              Rani · 0812-0000-0021<br>
+              Jl. Sigura-Gura, Malang
+            </div>
+
+            <div id="receiptItemsLine" style="font-size: 0.95rem; color: var(--slate-900); line-height: 1.5; margin-bottom: 1rem;">
+              Cuci + setrika reguler<br>
+              Pakaian campur<br>
+              3 kg × Rp7.000
+            </div>
+
+            <div id="receiptTotalLine" style="margin-bottom: 1rem; line-height: 1.4;">
+              <strong style="font-size: 1.15rem; color: var(--slate-900);">TOTAL Rp21.000</strong><br>
+              <span style="font-size: 0.9rem; font-weight: 600; color: var(--slate-900);">LUNAS · Tunai</span>
+            </div>
+
+            <div id="receiptEstimate" class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1.5rem;">
+              Estimasi: 16 Nov 2026 · 17.00
+            </div>
+
+            <div class="qr-display-box">
+              <img id="receiptQRImg" src="assets/img/qrContoh.png" alt="QR Pesanan STL-261114-021">
+              <strong id="receiptQRLabel" style="font-size: 0.85rem; color: var(--sky-700);">QR Pesanan · STL-261114-021</strong>
+            </div>
+
+            <p class="text-secondary" style="font-size: 0.775rem; text-align: center; margin-top: 1rem;">
+              Simpan nota atau kode untuk melacak pesanan tanpa login.
+            </p>
+          </div>
+
+          <div>
+            <div class="card" style="margin-bottom: 1.25rem;">
+              <div style="font-size: 1rem; font-weight: 700; color: var(--green-700); margin-bottom: 0.5rem;">
+                Label QR · Tercetak
+              </div>
+              <p id="printThermalSub" style="font-size: 0.9rem; color: var(--slate-900); margin-bottom: 0.25rem;">Printer thermal kasir</p>
+              <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1.25rem;">Tempel label pada keranjang laundry.</p>
+              <button type="button" id="btnReprintReceipt" class="btn btn-white btn-block">
+                Cetak ulang nota / QR
+              </button>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                <div style="font-size: 1rem; font-weight: 700; color: var(--green-700);">
+                  Struk WhatsApp ·<br>Terkirim
+                </div>
+                <button type="button" id="btnCheckWA" class="btn btn-blue" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                  Cek Pesan WhatsApp
+                </button>
+              </div>
+
+              <div id="whatsappDestination" class="text-secondary" style="font-size: 0.85rem; line-height: 1.4; margin-bottom: 0.75rem;">
+                Tujuan: 0812-0000-0021<br>14 Nov 2026 · 09.00 WIB
+              </div>
+
+              <p class="text-secondary" style="font-size: 0.8rem; line-height: 1.5;">
+                Pesan memuat kode pesanan, rincian item, berat, total pembayaran, dan tautan pelacakan.
+              </p>
+            </div>
+
+            <button type="button" id="btnBackToDashboard" class="btn btn-blue btn-block" style="margin-bottom: 1.5rem;">
+              Kembali ke daftar pesanan
+            </button>
+
+            <div class="card" style="background: #FFFFFF;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--slate-900); margin-bottom: 0.35rem;">Jika printer tidak terhubung</h4>
+              <p class="text-secondary" style="font-size: 0.85rem;">
+                Pesanan tetap tersimpan. Periksa printer lalu pilih cetak ulang.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-scan-qr" class="tab-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Scan & perbarui status</h1>
+          <p class="page-subtitle">Pindai QR pada keranjang untuk mengenali pesanan dan melanjutkan tahap pengerjaan.</p>
+        </div>
+
+        <div class="two-col-layout">
+          <div>
+            <div class="scanner-viewport">
+              <div class="scanner-box">
+                <div class="scanner-laser"></div>
+              </div>
+              <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Pindai QR pesanan</div>
+              <p style="font-size: 0.85rem; color: #94A3B8;">Arahkan QR label ke kamera</p>
+            </div>
+
+            <button type="button" id="btnActivateCamera" class="btn btn-white btn-block" style="margin: 1rem 0 1.5rem;">
+              Aktifkan kamera
+            </button>
+
+            <div class="form-group">
+              <label for="inputScanCode" class="form-label" style="font-size: 0.8rem;">Alternatif input kode</label>
+              <input type="text" id="inputScanCode" class="form-input" value="STL-261114-021" placeholder="Masukkan kode pesanan">
+            </div>
+
+            <button type="button" id="btnSearchScanCode" class="btn btn-white btn-block" style="margin-bottom: 1.5rem;">
+              Cari pesanan
+            </button>
+
+            <div class="card">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem;">QR belum terbaca?</h4>
+              <p class="text-secondary" style="font-size: 0.85rem; line-height: 1.5;">
+                Pindai ulang atau masukkan kode dari label secara manual.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <span class="sidebar-label" style="padding-left: 0;">PESANAN DIKENALI</span>
+              <h2 id="scanOrderHeader" style="font-size: 1.5rem; font-weight: 800; color: var(--slate-900); margin-bottom: 0.35rem;">
+                STL-261114-021 · Rani
+              </h2>
+              <p id="scanOrderDetails" class="text-secondary" style="font-size: 0.95rem; margin-bottom: 1.25rem;">
+                Cuci + setrika · 3 kg · Lunas Rp21.000
+              </p>
+
+              <div class="form-group">
+                <label for="scanStatusTransitionSelect" class="form-label">Perubahan tahap:</label>
+                <select id="scanStatusTransitionSelect" class="form-select" style="font-size: 1.1rem; font-weight: 700; color: var(--slate-900);">
+                  <option value="Selesai" selected>Disetrika → Selesai</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                <label for="scanShelfSelect" class="form-label" style="margin-bottom: 0; font-weight: 700;">
+                  Ditaruh Pada Rak Nomor :
+                </label>
+                <select id="scanShelfSelect" class="form-select" style="width: 120px;">
+                  <option value="01" selected>01</option>
+                  <option value="02">02</option>
+                  <option value="03">03</option>
+                  <option value="04">04</option>
+                </select>
+              </div>
+
+              <p id="scanNextStepNote" class="text-secondary" style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.25rem;">
+                Tahap berikutnya: selesai dan siap diambil. Waktu perubahan tercatat otomatis.
+              </p>
+
+              <button type="button" id="btnConfirmStatus" class="btn btn-blue btn-block" style="margin-bottom: 0.75rem;">
+                Konfirmasi
+              </button>
+
+              <p class="text-secondary" style="font-size: 0.8rem; text-align: center;">
+                Setelah berhasil: status menjadi Selesai dan notifikasi WhatsApp dikirim otomatis.
+              </p>
+            </div>
+
+            <div class="card">
+              <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">Riwayat status</h4>
+              <div id="scanHistoryContainer">
+              </div>
+            </div>
+
+            <div id="scanWABanner" class="card alert-card alert-danger-banner">
+              <div id="scanWABannerTitle" style="font-weight: 700; color: var(--red-700); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+                <span>⚠</span> Status tersimpan · WhatsApp gagal
+              </div>
+              <p id="scanWABannerDesc" style="font-size: 0.85rem; color: var(--slate-900); margin-bottom: 1rem; line-height: 1.5;">
+                Gangguan gateway tidak membatalkan perubahan status. Petugas dapat melihat kegagalan pengiriman.
+              </p>
+              <button type="button" id="btnRetryWA" class="btn btn-white btn-block" style="background: #FFFFFF;">
+                Kirim ulang notifikasi
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-secondary" style="font-size: 0.8rem; margin-top: 1.5rem;">
+          Alur: Diterima → Dicuci → Disetrika → Selesai → Diambil. Pada tahap Selesai, aksi berikutnya adalah konfirmasi pengambilan.
+        </p>
+      </section>
+
+      <section id="view-pelanggan" class="tab-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Data pelanggan</h1>
+          <p class="page-subtitle">Cari pelanggan lama, periksa nomor WhatsApp, atau perbarui data sebelum transaksi.</p>
+        </div>
+
+        <div class="two-col-layout">
+          <div>
+            <div class="form-group">
+              <label for="searchCustomerInput" class="form-label">Cari berdasarkan nama</label>
+              <div class="combobox-container">
+                <input type="text" id="searchCustomerInput" class="form-input" value="Rani" placeholder="Ketik nama pelanggan..." autocomplete="off">
+                <div id="searchCustomerDropdown" class="combobox-dropdown"></div>
+              </div>
+            </div>
+
+            <div class="table-container" style="margin-bottom: 0.75rem;">
+              <table class="data-table" aria-label="Tabel Pelanggan">
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th>WhatsApp</th>
+                    <th style="width: 25%;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                </tbody>
+              </table>
+            </div>
+
+            <p id="customersCountNote" class="text-secondary" style="font-size: 0.8rem; margin-bottom: 1.5rem;">
+              2 hasil ditemukan · Nomor dan alamat merupakan data contoh.
+            </p>
+
+            <div class="card">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem;">Pelanggan tidak ditemukan?</h4>
+              <p class="text-secondary" style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.25rem;">
+                Daftarkan pelanggan baru agar datanya dapat digunakan pada transaksi berikutnya.
+              </p>
+              <button type="button" id="btnOpenAddCustomerInPage" class="btn btn-white btn-block">
+                + Pelanggan baru
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <h3 class="card-title">Ubah data pelanggan</h3>
+              <form id="formEditCustomer" novalidate>
+                <div class="form-group">
+                  <label for="editCustomerName" class="form-label">Nama lengkap <span class="required">*</span></label>
+                  <input type="text" id="editCustomerName" class="form-input" value="Rani" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="editCustomerPhone" class="form-label">Nomor WhatsApp <span class="required">*</span></label>
+                  <input type="text" id="editCustomerPhone" class="form-input" value="0812-0000-0021" required>
+                  <div class="form-helper">Gunakan nomor aktif yang terhubung ke WhatsApp.</div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                  <label for="editCustomerAddress" class="form-label">Alamat <span class="required">*</span></label>
+                  <input type="text" id="editCustomerAddress" class="form-input" value="Jl. Sigura-Gura, Malang" required>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <button type="submit" class="btn btn-blue btn-block">
+                    Simpan perubahan
+                  </button>
+                  <button type="button" id="btnCancelEditCustomer" class="btn btn-white btn-block">
+                    Batal
+                  </button>
+                </div>
+
+                <p class="text-secondary" style="font-size: 0.775rem; text-align: center; margin-top: 1rem;">
+                  Nama, nomor WhatsApp, dan alamat wajib diisi.
+                </p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-pengeluaran" class="tab-view" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">Pengeluaran operasional</h1>
+          <p class="page-subtitle">Catat biaya harian. Data ini menjadi komponen kas keluar pada laporan pemilik.</p>
+        </div>
+
+        <div class="two-col-layout">
+          <div>
+            <div class="card">
+              <h3 class="card-title">Catat pengeluaran</h3>
+              <form id="formExpense" novalidate>
+                <div class="form-group">
+                  <label for="expenseDate" class="form-label">Tanggal <span class="required">*</span></label>
+                  <input type="text" id="expenseDate" class="form-input" value="16 November 2026" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="expenseCategory" class="form-label">Kategori <span class="required">*</span></label>
+                  <select id="expenseCategory" class="form-select">
+                    <option value="Bahan laundry" selected>Bahan laundry</option>
+                    <option value="Listrik & Air">Listrik & Air</option>
+                    <option value="Operasional Toko">Operasional Toko</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="expenseDescription" class="form-label">Keterangan <span class="required">*</span></label>
+                  <input type="text" id="expenseDescription" class="form-input" value="Pembelian detergen" placeholder="Contoh: Pembelian detergen" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="expenseAmount" class="form-label">Nominal <span class="required">*</span></label>
+                  <input type="text" id="expenseAmount" class="form-input" value="Rp30.000" placeholder="Rp" required>
+                  <div class="form-helper">Nominal harus lebih besar dari Rp0.</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem;">
+                  <button type="submit" class="btn btn-blue btn-block">
+                    Simpan pengeluaran
+                  </button>
+                  <button type="button" id="btnCancelExpense" class="btn btn-white btn-block">
+                    Batal
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div class="text-secondary" style="font-size: 0.85rem; margin-bottom: 0.25rem;">Total pengeluaran hari ini</div>
+              <div id="expenseTotalAmount" style="font-size: 2.25rem; font-weight: 800; color: var(--slate-900); margin-bottom: 0.25rem;">
+                Rp45.000
+              </div>
+              <div id="expenseTotalCount" class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1.5rem;">
+                2 catatan · 16 November 2026
+              </div>
+
+              <div class="table-container" style="box-shadow: none;">
+                <table class="data-table" aria-label="Tabel Pengeluaran Hari Ini">
+                  <thead>
+                    <tr>
+                      <th>Keterangan</th>
+                      <th>Waktu</th>
+                      <th>Nominal</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expenseListBody">
+                  </tbody>
+                </table>
+              </div>
+
+              <p class="text-success" style="font-size: 0.85rem; font-weight: 600; margin-top: 1.25rem;">
+                Pengeluaran tersimpan dan laporan diperbarui.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    © 2026 Sativa Laundry
+  </footer>
+
+  <div id="modalDataPelangganTersimpan" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-tag">BERHASIL</div>
+      <h3 class="modal-title">Data pelanggan tersimpan</h3>
+      <p class="modal-desc">
+        Perubahan data pelanggan telah disimpan. Nomor WhatsApp dan alamat siap digunakan pada transaksi berikutnya.
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalDataPelangganTersimpan">
+        Selesai
+      </button>
+    </div>
+  </div>
+
+  <div id="modalNotaDicetak" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-tag">BERHASIL</div>
+      <h3 class="modal-title">Nota berhasil dicetak</h3>
+      <p id="dialogNotaDesc" class="modal-desc">
+        Nota dan label QR STL-261114-021 dicetak ulang. Tempelkan label pada keranjang laundry.
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalNotaDicetak">
+        Selesai
+      </button>
+    </div>
+  </div>
+
+  <div id="modalQRDikenali" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-tag">BERHASIL</div>
+      <h3 class="modal-title">QR berhasil dikenali</h3>
+      <p id="dialogQRDesc" class="modal-desc">
+        Simulasi pemindaian: STL-261114-021 · Rani. Lanjutkan ke hasil pemindaian di halaman ini untuk memperbarui status.
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalQRDikenali">
+        Selesai
+      </button>
+    </div>
+  </div>
+
+  <div id="modalPelangganBaruTerdaftar" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-tag">BERHASIL</div>
+      <h3 class="modal-title">Pelanggan baru terdaftar</h3>
+      <p class="modal-desc">
+        Simulasi pendaftaran berhasil. Data pelanggan dapat digunakan ketika membuat pesanan baru.
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalPelangganBaruTerdaftar">
+        Selesai
+      </button>
+    </div>
+  </div>
+
+  <div id="modalPengeluaranTersimpan" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-tag">BERHASIL</div>
+      <h3 class="modal-title">Pengeluaran tersimpan</h3>
+      <p id="dialogPengeluaranDesc" class="modal-desc">
+        Pembelian detergen Rp30.000 tercatat. Total hari ini Rp45.000 dari 2 catatan. Laporan pemilik diperbarui.
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalPengeluaranTersimpan">
+        Selesai
+      </button>
+    </div>
+  </div>
+
+  <div id="modalNotifikasiTerkirim" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-tag">BERHASIL</div>
+      <h3 class="modal-title">Notifikasi terkirim</h3>
+      <p id="dialogNotifikasiDesc" class="modal-desc">
+        WhatsApp untuk pesanan STL-261114-021 berhasil dikirim ulang ke 0812-0000-0021.
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalNotifikasiTerkirim">
+        Selesai
+      </button>
+    </div>
+  </div>
+
+  <div id="modalDetailPesanan" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog" style="max-width: 360px;">
+      <div id="modalDetailCode" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.25rem;">
+        STL-261115-023
+      </div>
+      <h3 id="modalDetailName" style="font-size: 1.75rem; font-weight: 800; color: var(--slate-900); margin-bottom: 0.5rem;">
+        Dimas
+      </h3>
+      <p id="modalDetailService" style="font-size: 1.05rem; color: var(--slate-900); margin-bottom: 0.5rem;">
+        Cuci + setrika · 3 kg
+      </p>
+      <p id="modalDetailStatus" style="font-weight: 700; font-size: 1rem; margin-bottom: 1.5rem;">
+        Status: <span style="color: var(--amber-700);">Dicuci</span>
+      </p>
+      <button type="button" class="btn btn-blue btn-block" data-close-modal="modalDetailPesanan">
+        Tutup detail
+      </button>
+    </div>
+  </div>
+
+  <div id="modalTambahPelanggan" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-dialog" style="max-width: 440px;">
+      <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--slate-900); margin-bottom: 1.25rem;">
+        Tambah pelanggan baru
+      </h3>
+      <form id="formAddCustomer" novalidate>
+        <div class="form-group">
+          <label for="addCustomerName" class="form-label">Nama lengkap <span class="required">*</span></label>
+          <input type="text" id="addCustomerName" class="form-input" placeholder="Masukkan nama pelanggan" required>
+        </div>
+
+        <div class="form-group">
+          <label for="addCustomerPhone" class="form-label">Nomor WhatsApp <span class="required">*</span></label>
+          <input type="text" id="addCustomerPhone" class="form-input" placeholder="Contoh: 0812-xxxx-xxxx" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="addCustomerAddress" class="form-label">Alamat <span class="required">*</span></label>
+          <textarea id="addCustomerAddress" class="form-textarea" rows="3" placeholder="Masukkan alamat lengkap" required></textarea>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="submit" class="btn btn-blue" style="flex: 1;">
+            Simpan pelanggan
+          </button>
+          <button type="button" class="btn btn-white" data-close-modal="modalTambahPelanggan" style="flex: 1;">
+            Batal
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      window.sativaAuth.requireAuth('pegawai');
+    });
+  </script>
+</body>
+</html>
