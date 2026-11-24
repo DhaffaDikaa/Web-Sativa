@@ -9,66 +9,126 @@
 </head>
 <body>
   <header class="app-header">
-    <a href="pemilik.html" class="brand-container">
-      <img src="assets/img/Logo.png" alt="Sativa Laundry Logo" class="brand-logo">
+    <a href="pemilik.html#cashflow" class="brand-container">
+      <img src="assets/img/Logo.png" alt="Sativa Laundry" class="brand-logo">
     </a>
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <span class="user-pill-badge" id="btnKeluar" title="Klik untuk keluar">Pemilik (Keluar)</span>
-    </div>
+    <button type="button" class="user-pill-badge" id="btnKeluar" title="Klik untuk keluar">Pemilik</button>
   </header>
 
-  <main class="owner-page-container">
-    <div class="card owner-coming-soon-card">
-      <span class="login-badge-pill" style="display: inline-block; margin-bottom: 0.75rem;">PORTAL PEMILIK (OWNER)</span>
-      <h1 style="font-size: 2.25rem; font-weight: 800; color: var(--slate-900); margin-bottom: 1rem;">
-        Coming Soon
-      </h1>
-      <p class="text-secondary" style="font-size: 1.1rem; max-width: 580px; margin: 0 auto 2rem; line-height: 1.6;">
-        Modul laporan arus kas (cashflow), analitik trafik pelanggan, dan rekap keuangan pemilik sedang dalam tahap pengembangan.
-      </p>
+  <nav class="owner-mobile-nav" aria-label="Navigasi pemilik">
+    <a href="#cashflow" class="owner-nav-link active" data-nav-target="cashflow">Cashflow</a>
+    <a href="#trafik" class="owner-nav-link" data-nav-target="trafik">Trafik pelanggan</a>
+  </nav>
 
-      <div class="owner-features-box">
-        <h4 class="owner-features-title">Fitur yang Segera Hadir:</h4>
-        <ul class="owner-features-list">
-          <li>Laporan Cashflow harian, mingguan, dan bulanan</li>
-          <li>Grafik tren trafik pelanggan baru vs pelanggan kembali</li>
-          <li>Rekap penerimaan transaksi dan pengeluaran operasional</li>
-        </ul>
-      </div>
+  <div class="owner-layout">
+    <aside class="owner-sidebar" aria-label="Navigasi pemilik">
+      <p class="owner-sidebar-label">Ruang pemilik</p>
+      <a href="#cashflow" class="owner-nav-link active" data-nav-target="cashflow">Cashflow</a>
+      <a href="#trafik" class="owner-nav-link" data-nav-target="trafik">Trafik pelanggan</a>
+      <p class="owner-sidebar-note" id="sidebarNote">Operasional toko<br>08.00–21.00 WIB</p>
+    </aside>
 
-      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="pegawai.html" class="btn btn-blue">
-          Lihat Halaman Pegawai / Kasir
-        </a>
-        <button id="btnLogoutBtn" class="btn btn-white">
-          Keluar ke Halaman Login
-        </button>
-      </div>
-    </div>
-  </main>
+    <main class="owner-content">
+      <section id="view-cashflow" class="owner-view">
+        <header class="owner-page-header">
+          <p class="owner-kicker">Pemilik / Laporan</p>
+          <h1>Laporan cashflow</h1>
+          <p class="owner-lead">Akses pemilik · Pantau pemasukan, pengeluaran, dan riwayat transaksi.</p>
+        </header>
 
-  <footer class="app-footer">
-    © 2026 Sativa Laundry
-  </footer>
+        <form id="formCashflow" class="owner-filter-card">
+          <div class="owner-field">
+            <label for="cashRange" class="form-label">Rentang waktu</label>
+            <select id="cashRange" class="form-select">
+              <option value="harian" selected>Harian</option>
+              <option value="mingguan">Mingguan</option>
+              <option value="bulanan">Bulanan</option>
+            </select>
+          </div>
+          <div class="owner-field">
+            <label for="cashPeriod" class="form-label" id="cashPeriodLabel">Tanggal laporan</label>
+            <select id="cashPeriod" class="form-select"></select>
+          </div>
+          <div class="owner-field owner-field-action">
+            <span class="owner-action-label">Laporan</span>
+            <button type="submit" class="btn btn-blue btn-block">Terapkan periode</button>
+          </div>
+        </form>
+
+        <div class="owner-stats" id="cashStats"></div>
+
+        <section class="owner-panel owner-month-panel" id="cashMonth"></section>
+
+        <section class="owner-panel">
+          <h2 class="owner-panel-title">Riwayat transaksi</h2>
+          <p class="owner-panel-meta" id="cashHistoryMeta"></p>
+          <div class="owner-table-wrap">
+            <table class="owner-table" aria-label="Riwayat transaksi cashflow">
+              <thead>
+                <tr>
+                  <th>Referensi</th>
+                  <th>Keterangan</th>
+                  <th>Jenis</th>
+                  <th>Nominal</th>
+                </tr>
+              </thead>
+              <tbody id="cashTableBody"></tbody>
+            </table>
+          </div>
+          <div class="owner-tx-cards" id="cashCardList"></div>
+          <p class="owner-footnote" id="cashEmptyNote">Jika periode belum memiliki transaksi: “Data transaksi kosong/tidak ditemukan”.</p>
+        </section>
+      </section>
+
+      <section id="view-trafik" class="owner-view" hidden>
+        <header class="owner-page-header">
+          <p class="owner-kicker">Pemilik / Laporan</p>
+          <h1>Trafik pelanggan</h1>
+          <p class="owner-lead">Akses pemilik · Lihat pesanan masuk serta pelanggan baru dan kembali.</p>
+        </header>
+
+        <form id="formTrafik" class="owner-filter-card">
+          <div class="owner-field">
+            <label for="trafficRange" class="form-label">Tampilan</label>
+            <select id="trafficRange" class="form-select">
+              <option value="mingguan" selected>Mingguan</option>
+              <option value="harian">Harian</option>
+              <option value="bulanan">Bulanan</option>
+            </select>
+          </div>
+          <div class="owner-field">
+            <label for="trafficPeriod" class="form-label">Periode</label>
+            <select id="trafficPeriod" class="form-select"></select>
+          </div>
+          <div class="owner-field owner-field-action">
+            <span class="owner-action-label">Laporan</span>
+            <button type="submit" class="btn btn-blue btn-block">Terapkan periode</button>
+          </div>
+        </form>
+
+        <div class="owner-stats" id="trafficStats"></div>
+
+        <section class="owner-panel">
+          <h2 class="owner-panel-title">Pesanan masuk per hari</h2>
+          <p class="owner-panel-meta">Biru: pelanggan baru / Oren : pelanggan kembali</p>
+          <div class="owner-chart" id="trafficChart"></div>
+        </section>
+
+        <div class="owner-insight-grid">
+          <article class="owner-panel" id="trafficBusiest"></article>
+          <article class="owner-panel">
+            <h3 class="owner-insight-title">Jika belum ada data</h3>
+            <p class="owner-insight-text">“Tidak ada data trafik pada periode ini.” Ubah rentang waktu untuk melihat periode lain.</p>
+          </article>
+        </div>
+      </section>
+
+      <p class="owner-copyright">© 2026 Sativa Laundry</p>
+    </main>
+  </div>
 
   <script src="assets/js/store.js"></script>
   <script src="assets/js/auth.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      window.sativaAuth.requireAuth('pemilik');
-
-      const btnKeluar = document.getElementById('btnKeluar');
-      const btnLogoutBtn = document.getElementById('btnLogoutBtn');
-
-      function handleLogout() {
-        if (confirm('Apakah Anda yakin ingin keluar?')) {
-          window.sativaAuth.logout();
-        }
-      }
-
-      if (btnKeluar) btnKeluar.addEventListener('click', handleLogout);
-      if (btnLogoutBtn) btnLogoutBtn.addEventListener('click', handleLogout);
-    });
-  </script>
+  <script src="assets/js/pemilik.js"></script>
 </body>
 </html>
